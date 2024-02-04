@@ -41,13 +41,13 @@ func FindLoc(db *sql.DB, lat float64, lon float64, radius int) {
 
 	rows, err := stmt.Query(lat, lon, lat, radius)
 	checkErr(err)
+	var id int
+	var lat2 float64
+	var lon2 float64
+	var distance float64
 
 	for rows.Next() {
-		var id int
-		var lat float64
-		var lon float64
-		var distance float64
-		err = rows.Scan(&id, &lat, &lon, &distance)
+		err = rows.Scan(&id, &lat2, &lon2, &distance)
 		checkErr(err)
 		fmt.Println(id, lat, lon, distance)
 	}
