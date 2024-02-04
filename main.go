@@ -16,7 +16,7 @@ func main() {
 
 	db, err := sql.Open("sqlite", "test.db")
 	checkErr(err)
-	fmt.Println("ID", "Lattitude", "Longitude", "Distance")
+	fmt.Println("ID", "Lattitude", "Longitude", "Distance(KM)")
 	FindLoc(db, lat, lon, radius)
 }
 
