@@ -2,59 +2,103 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
+	"os"
 
 	_ "modernc.org/sqlite"
 )
 
+const (
+	Unit = 6371 // 6371 for KM and 3959 for Miles
+	Limt = 10   // Limit of the number of locations to be returned
+)
+
+type (
+	InputData struct {
+		lat    float64
+		lon    float64
+		radius int
+	}
+	OutputData struct {
+		id       int
+		lat      float64
+		lon      float64
+		distance float64
+	}
+)
+
 func main() {
-	var lat, lon float64
-	var radius int
-	fmt.Print("Enter latitude, longitude and radius separated by comma (e.g., 23.777176,90.399452,100): ")
-	_, err := fmt.Scanf("%f,%f,%d", &lat, &lon, &radius)
-	checkErr(err)
+	inputData := ReciveFlags()
 
 	db, err := sql.Open("sqlite", "test.db")
-	checkErr(err)
-	fmt.Println("ID", "Lattitude", "Longitude", "Distance(KM)")
-	FindLoc(db, lat, lon, radius)
-}
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1) // Since no Defer Statement is used
+	}
+	sortedList, err := GetSortedLocation(db, inputData)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(2)
+	}
+	fmt.Println("The Neerest location is: \t", sortedList[0].lat, sortedList[0].lon, "Distance(KM):", sortedList[0].distance)
 
-func FindLoc(db *sql.DB, lat float64, lon float64, radius int) {
-	stmt, err := db.Prepare(`SELECT 
-	id,lat,lon, 
-	(
-   6371 *
-   acos(cos(radians(?)) * 
-   cos(radians(lat)) * 
-   cos(radians(lon) - 
-   radians(?)) + 
-   sin(radians(?)) * 
-   sin(radians(lat )))
-	) AS distance 
-	FROM location
-	GROUP BY id
-	HAVING distance < ? 
-	ORDER BY distance`)
-
-	checkErr(err)
-
-	rows, err := stmt.Query(lat, lon, lat, radius)
-	checkErr(err)
-	var id int
-	var lat2 float64
-	var lon2 float64
-	var distance float64
-
-	for rows.Next() {
-		err = rows.Scan(&id, &lat2, &lon2, &distance)
-		checkErr(err)
-		fmt.Println(id, lat, lon, distance)
+	// Table Header
+	fmt.Println("The Sorted List(Near to Far):")
+	fmt.Println("Latitude\tLongitude\tDistance(KM)")
+	// Pretty Print Sorted List of Locations
+	for _, loc := range sortedList {
+		fmt.Println(loc.lat, "\t", loc.lon, "\t", loc.distance)
 	}
 }
 
-func checkErr(err error) {
+// GetSortedLocation returns a sorted list(near to far ) of locations based
+// on the input Geo Location and Radius from the database
+func GetSortedLocation(db *sql.DB, inp InputData) ([]OutputData, error) {
+	stmt, err := db.Prepare(`SELECT 
+	id,lat,lon, 
+	(
+   ? *
+   acos(cos(radians(?)) * 
+   cos(rlat) * 
+   cos(rlon - 
+   radians(?)) + 
+   sin(radians(?)) * 
+   sin(rlat))
+	) AS distance 
+	FROM location2
+	GROUP BY id HAVING distance < ? 
+	ORDER BY distance LIMIT ? `)
 	if err != nil {
-		panic(err)
+		return nil, err
+	}
+	rows, err := stmt.Query(Unit, inp.lat, inp.lon, inp.lat, inp.radius, Limt)
+	if err != nil {
+		return nil, err
+	}
+	var sortedList []OutputData
+	for rows.Next() {
+
+		var loc OutputData
+		err = rows.Scan(&loc.id, &loc.lat, &loc.lon, &loc.distance)
+		if err != nil {
+			return nil, err
+		}
+		sortedList = append(sortedList, loc)
+	}
+
+	return sortedList, nil
+}
+
+// ReciveFlags receives the latitude, longitude and radius from the command line flags
+func ReciveFlags() InputData {
+	lt := flag.Float64("lt", 23.777176, "lt command receives latitude of a geolocation")
+	ln := flag.Float64("ln", 90.399452, "ln command receives longitude of a geolocation")
+	r := flag.Int("r", 100, "r command receives radius of search area")
+	flag.Parse()
+	return InputData{
+		lat:    *lt,
+		lon:    *ln,
+		radius: *r,
 	}
 }
