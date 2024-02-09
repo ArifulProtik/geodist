@@ -14,7 +14,8 @@ A lot of current apps now provide the option to show nearby data, which could in
 ## Usage 
 ### To Build
 ```bash 
-go build -o geodist
+$ go mod tidy
+$ go build -o geodist
 ``` 
 ### For Help
 
@@ -26,6 +27,31 @@ go build -o geodist
 ```bash
 ./geofinder -lt=<latitude> -ln=<longitude> -r=<radius> 
 ```
+
+### Adding More Data 
+- The data is stored in a sqlite database. You can add more data by adding more rows to the database.
+- The database is located at `./test.db` 
+- The table name is `location2`
+- The columns are `id`, `lat`, `lon` `rlat` and `rlon` (rlat and rlon are the radians of lat and lon Generative Columns)
+For example: [test.db]  
+
+
+```sql
+INSERT INTO location2(id,lat,lon) VALUES(2,23.643999,88.855637);
+
+```
+### Recreate The Database Table 
+```sql
+CREATE TABLE location2 (
+    id INTEGER PRIMARY KEY,
+    lat REAL, -- latitude and longtitude as FLOAT( 10, 8 ) NB: see reference for more info
+    lon REAL,
+    rlat REAL GENERATED ALWAYS AS (RADIANS(lat)) STORED,
+    rlon REAL GENERATED ALWAYS AS (RADIANS(lon)) STORED
+);
+```
+
+
 ## References 
 - [Haversine Formula](https://en.wikipedia.org/wiki/Haversine_formula)
 
