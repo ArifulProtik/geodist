@@ -88,7 +88,6 @@ func TestGetSortedLocation(t *testing.T) {
 	defer sqlDB.Close()
 
 	Locations, err := GetSortedLocation(sqlDB, InputData{lat: 23.777176, lon: 90.399452, radius: 20})
-	assert.NotNil(t, Locations)
 	assert.Equal(t, newData.id, Locations[0].id)
 	assert.NoError(t, err)
 }

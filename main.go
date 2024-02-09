@@ -41,6 +41,10 @@ func main() {
 		fmt.Println(err)
 		os.Exit(2)
 	}
+	if len(sortedList) == 0 {
+		fmt.Println("No Location Found within the given radius")
+		os.Exit(3)
+	}
 	fmt.Println("The Neerest location is: \t", sortedList[0].lat, sortedList[0].lon, "Distance(KM):", sortedList[0].distance)
 
 	// Table Header
